@@ -1,12 +1,10 @@
 # Go
 /bin/
-/obj/
 /vendor/
 /*.exe
-/*.log
 
 # Docker
 docker-compose.override.yml
 
-# Env
+# Entorno
 *.env

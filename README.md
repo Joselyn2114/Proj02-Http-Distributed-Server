@@ -1,7 +1,6 @@
 # Proj02-Http-Distributed-Server
 
 Monorepo con:
-
-- **dispatcher/**: recibe peticiones y balancea a los workers.
-- **workers/pi/**: calcula π vía Monte Carlo.
+- **dispatcher/**: enruta y balancea peticiones.
+- **workers/pi/**: calcula π (Monte Carlo).
 - **workers/matrix/**: multiplica matrices.
