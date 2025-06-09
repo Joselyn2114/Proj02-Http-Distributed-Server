@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  dispatcher:
+    build: ./dispatcher
+    container_name: dispatcher
+    ports: ["8080:8080"]
+    environment:
+      - PORT=8080
+      - WORKERS=http://worker-pi:8081,http://worker-matrix:8082
+    depends_on:
+      - worker-pi
+      - worker-matrix
+
+  worker-pi:
+    build: ./workers/pi
+    container_name: worker-pi
+    ports: ["8081:8081"]
+    environment:
+      - PORT=8081
+
+  worker-matrix:
+    build: ./workers/matrix
+    container_name: worker-matrix
+    ports: ["8082:8082"]
+    environment:
+      - PORT=8082

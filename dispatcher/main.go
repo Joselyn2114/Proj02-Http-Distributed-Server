@@ -1,16 +1,16 @@
 package main
 
 import (
-  "encoding/json"
-  "io/ioutil"
-  "net/http"
-  "os"
-  "strconv"
-  "strings"
-  "sync/atomic"
-  "time"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync/atomic"
+	"time"
 
-  "github.com/KateGF/Http-Server-Project-SO/core"
+	"github.com/KateGF/Http-Server-Project-SO/core"
 )
 
 func mustAtoi(s string) int {
@@ -33,7 +33,7 @@ func main() {
     states[i] = &state{URL: url}
   }
 
-  srv := core.NewServer()
+  srv := core.NewHttpServer()
   var idx uint64
 
   // 1. Health-check
@@ -61,16 +61,17 @@ func main() {
   }()
 
   // 2. Proxy Round-Robin
-  proxy := func(path string) core.HandlerFunc {
-    return func(req *core.Request) (*core.Response, error) {
+  proxy := func(path string) core.Handle {
+    return func(req *core.HttpRequest) (*core.HttpResponse, error) {
       n := uint64(len(workers))
       for a := uint64(0); a < n; a++ {
         i := int(atomic.AddUint64(&idx, 1) % n)
         if !states[i].Alive {
           continue
         }
+				// build URL + raw query string from parsed URL
         target := workers[i] + path
-        if q := req.RawQuery(); q != "" {
+        if q := req.Target.RawQuery; q != "" {
           target += "?" + q
         }
         r2, err := http.Get(target)
@@ -79,8 +80,10 @@ func main() {
         }
         b, _ := ioutil.ReadAll(r2.Body)
         r2.Body.Close()
+				// on success return response + nil error
         return core.Ok().Text(string(b)), nil
       }
+			// if all workers dead
       return core.BadRequest().Text("todos los workers caídos"), nil
     }
   }
@@ -90,8 +93,9 @@ func main() {
   }
 
   // 3. /workers
-  srv.Get("/workers", func(req *core.Request) (*core.Response, error) {
-    return core.Ok().JsonObj(states)
+  srv.Get("/workers", func(req *core.HttpRequest) (*core.HttpResponse, error) {
+		// append nil error to match signature (*HttpResponse, error)
+    return core.Ok().JsonObj(states), nil
   })
 
   // 4. Iniciar
