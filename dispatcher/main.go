@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -74,14 +74,29 @@ func main() {
         if q := req.Target.RawQuery; q != "" {
           target += "?" + q
         }
-        r2, err := http.Get(target)
+        newRequest, err := http.NewRequest(req.Method, target, strings.NewReader(req.Body))
         if err != nil {
           continue
         }
-        b, _ := ioutil.ReadAll(r2.Body)
-        r2.Body.Close()
-				// on success return response + nil error
-        return core.Ok().Text(string(b)), nil
+        newResponse, err := http.DefaultClient.Do(newRequest)
+        if err != nil {
+          continue
+        }
+        newResponseBody, err := io.ReadAll(newResponse.Body)
+        defer newResponse.Body.Close()
+        if err != nil {
+          continue
+        }
+        newResponseHeaders := make(map[string]string)
+        for k, v := range newResponse.Header {
+          newResponseHeaders[k] = strings.Join(v, ", ")
+        }
+        return &core.HttpResponse{
+          StatusCode: newResponse.StatusCode,
+          StatusText: newResponse.Status,
+          Headers:    newResponseHeaders,
+          Body:       string(newResponseBody),
+        }, nil
       }
 			// if all workers dead
       return core.BadRequest().Text("todos los workers caídos"), nil
@@ -89,7 +104,7 @@ func main() {
   }
 
   for _, p := range []string{"/fibonacci", "/hash", "/simulate", "/pi", "/matrix"} {
-    srv.Get(p, proxy(p))
+    srv.Post(p, proxy(p))
   }
 
   // 3. /workers
