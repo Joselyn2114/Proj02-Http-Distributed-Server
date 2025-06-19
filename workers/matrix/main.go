@@ -21,7 +21,7 @@ func main() {
 		}), nil
 	})
 
-	srv.Get("/matrix", MatrixHandler)
+	srv.Post("/matrix", MatrixHandler)
 
 	port := mustAtoi(os.Getenv("PORT"))
 	srv.Start(port)
