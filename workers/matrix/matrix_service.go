@@ -8,20 +8,31 @@ import (
 
 // Estructura que representa dos matrices para operaciones.
 type Matrices struct {
-	A Matrix `json:"A"`
-	B Matrix `json:"B"`
+	A Matrix
+	B Matrix
 }
 
-// ReadMatrices lee el cuerpo de la solicitud HTTP y deserializa las matrices.
+// ReadMatrices lee el cuerpo de la solicitud HTTP, deserializa las matrices y crea objetos Matrix.
 func ReadMatrices(req *core.HttpRequest) (Matrices, error) {
-	var matrices Matrices
+	var data struct {
+		A [][]float64 `json:"A"`
+		B [][]float64 `json:"B"`
+	}
+	if err := json.Unmarshal([]byte(req.Body), &data); err != nil {
+		return Matrices{}, err
+	}
 
-	err := json.Unmarshal([]byte(req.Body), &matrices)
+	A, err := NewMatrix(data.A)
 	if err != nil {
 		return Matrices{}, err
 	}
 
-	return matrices, nil
+	B, err := NewMatrix(data.B)
+	if err != nil {
+		return Matrices{}, err
+	}
+
+	return Matrices{A, B}, nil
 }
 
 // MatrixHandler maneja la solicitud HTTP para multiplicar dos matrices.
