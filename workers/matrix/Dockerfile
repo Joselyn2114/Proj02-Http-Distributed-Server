@@ -3,7 +3,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o worker-matrix main.go
+RUN go build -o worker-matrix .
 
 FROM alpine:3.19
 WORKDIR /app
