@@ -1,12 +1,13 @@
 package main
 
 import (
-    "log/slog"
+	"log/slog"
 
-    "github.com/KateGF/Http-Server-Project-SO/core"
-    "github.com/KateGF/Http-Server-Project-SO/handlers"
-    "github.com/KateGF/Http-Server-Project-SO/service"
-    "github.com/KateGF/Http-Server-Project-SO/advanced"
+	"github.com/KateGF/Http-Server-Project-SO/advanced"
+	"github.com/KateGF/Http-Server-Project-SO/core"
+	"github.com/KateGF/Http-Server-Project-SO/handlers"
+	"github.com/KateGF/Http-Server-Project-SO/service"
+	"github.com/KateGF/Http-Server-Project-SO/worker/matrix"
 )
 
 // ping responde “pong”
@@ -39,8 +40,8 @@ func main() {
 
     // --- Nuevos endpoints para procesamiento distribuido ---
     server.Get("/ping", pingHandler)
-    server.Get("/pi/part", piPartHandler)            // definido más abajo
-    server.Post("/matrix/part", matrixPartHandler)   // definido más abajo
+    server.Get("/pi/part", piPartHandler)               // definido más abajo
+    server.Post("/matrix/part", matrix.MatrixHandler)   // definido más abajo
 
     slog.Info("Worker arrancado en :8080")
     if err := server.Start(8080); err != nil {
