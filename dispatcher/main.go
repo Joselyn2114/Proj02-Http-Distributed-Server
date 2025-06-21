@@ -28,8 +28,8 @@ var (
 
 // --- Registro dinámico de workers ---
 
-// registerHandler añade un nuevo worker al dispatcher, sin duplicados.
-func registerHandler(w http.ResponseWriter, r *http.Request) {
+// RegisterHandler añade un nuevo worker al dispatcher, sin duplicados.
+func RegisterHandler(w http.ResponseWriter, r *http.Request) {
     var payload struct{ URL string }
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil || payload.URL == "" {
         http.Error(w, "Bad JSON", http.StatusBadRequest)
@@ -52,8 +52,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusNoContent)
 }
 
-// unregisterHandler elimina un worker cuando apaga
-func unregisterHandler(w http.ResponseWriter, r *http.Request) {
+// UnregisterHandler elimina un worker cuando apaga
+func UnregisterHandler(w http.ResponseWriter, r *http.Request) {
     var payload struct{ URL string }
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil || payload.URL == "" {
         http.Error(w, "Bad JSON", http.StatusBadRequest)
@@ -72,7 +72,7 @@ func unregisterHandler(w http.ResponseWriter, r *http.Request) {
 
 // --- Health-checker periódico ---
 
-func healthChecker() {
+func HealthChecker() {
     for {
         mu.Lock()
         pool := make([]*WorkerInfo, len(workers))
@@ -98,8 +98,8 @@ func healthChecker() {
 
 // --- Utilidades de workers ---
 
-// getNextWorker devuelve el siguiente activo en round-robin
-func getNextWorker() *WorkerInfo {
+// GetNextWorker devuelve el siguiente activo en round-robin
+func GetNextWorker() *WorkerInfo {
     mu.Lock()
     defer mu.Unlock()
     n := len(workers)
@@ -112,8 +112,8 @@ func getNextWorker() *WorkerInfo {
     return nil
 }
 
-// getActiveWorkers devuelve la lista de workers actualmente activos
-func getActiveWorkers() []*WorkerInfo {
+// GetActiveWorkers devuelve la lista de workers actualmente activos
+func GetActiveWorkers() []*WorkerInfo {
     mu.Lock()
     defer mu.Unlock()
     active := make([]*WorkerInfo, 0, len(workers))
@@ -127,13 +127,13 @@ func getActiveWorkers() []*WorkerInfo {
     return active
 }
 
-// doRequestWithRetry intenta hasta maxTries repartir la petición si un worker falla
-func doRequestWithRetry(method, url string, payload []byte, headers http.Header, maxTries int) (*http.Response, error) {
+// DoRequestWithRetry intenta hasta maxTries repartir la petición si un worker falla
+func DoRequestWithRetry(method, url string, payload []byte, headers http.Header, maxTries int) (*http.Response, error) {
     var lastErr error
     tried := make(map[string]bool)
 
     for attempt := 0; attempt < maxTries; attempt++ {
-        wk := getNextWorker()
+        wk := GetNextWorker()
         if wk == nil {
             break
         }
@@ -173,8 +173,8 @@ func doRequestWithRetry(method, url string, payload []byte, headers http.Header,
     return nil, fmt.Errorf("all workers failed: %v", lastErr)
 }
 
-// proxyHandler reenvía cualquier ruta GENÉRICA a un worker con retry
-func proxyHandler(w http.ResponseWriter, r *http.Request) {
+// ProxyHandler reenvía cualquier ruta GENÉRICA a un worker con retry
+func ProxyHandler(w http.ResponseWriter, r *http.Request) {
     payload, err := io.ReadAll(r.Body)
     if err != nil {
         http.Error(w, "Error leyendo cuerpo", http.StatusInternalServerError)
@@ -182,7 +182,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
     }
     defer r.Body.Close()
 
-    resp, err := doRequestWithRetry(r.Method, r.RequestURI, payload, r.Header, len(workers))
+    resp, err := DoRequestWithRetry(r.Method, r.RequestURI, payload, r.Header, len(workers))
     if err != nil {
         http.Error(w, err.Error(), http.StatusBadGateway)
         return
@@ -198,8 +198,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
     io.Copy(w, resp.Body)
 }
 
-// statusHandler muestra el estado actual de todos los workers
-func statusHandler(w http.ResponseWriter, _ *http.Request) {
+// StatusHandler muestra el estado actual de todos los workers
+func StatusHandler(w http.ResponseWriter, _ *http.Request) {
     mu.Lock()
     defer mu.Unlock()
     out := make([]map[string]interface{}, 0, len(workers))
@@ -217,8 +217,8 @@ func statusHandler(w http.ResponseWriter, _ *http.Request) {
 
 // --- Endpoint /matrix: split, distribuir, merge ---
 
-// splitMatrixRows divide A en n bloques de filas
-func splitMatrixRows(A [][]float64, n int) [][][]float64 {
+// SplitMatrixRows divide A en n bloques de filas
+func SplitMatrixRows(A [][]float64, n int) [][][]float64 {
     m := len(A)
     size := (m + n - 1) / n
     parts := make([][][]float64, 0, n)
@@ -232,8 +232,8 @@ func splitMatrixRows(A [][]float64, n int) [][][]float64 {
     return parts
 }
 
-// stitchMatrix recompone bloques en una sola matriz
-func stitchMatrix(parts [][][]float64) [][]float64 {
+// StitchMatrix recompone bloques en una sola matriz
+func StitchMatrix(parts [][][]float64) [][]float64 {
     var result [][]float64
     for _, block := range parts {
         result = append(result, block...)
@@ -241,7 +241,7 @@ func stitchMatrix(parts [][][]float64) [][]float64 {
     return result
 }
 
-func matrixHandler(w http.ResponseWriter, r *http.Request) {
+func MatrixHandler(w http.ResponseWriter, r *http.Request) {
     // 1) Decode del JSON de entrada
     var payload struct {
         A [][]float64 `json:"a"`
@@ -254,7 +254,7 @@ func matrixHandler(w http.ResponseWriter, r *http.Request) {
     defer r.Body.Close()
 
     // 2) Split de A en bloques de filas
-    rowBlocks := splitMatrixRows(payload.A, len(getActiveWorkers()))
+    rowBlocks := SplitMatrixRows(payload.A, len(GetActiveWorkers()))
 
     // 3) Preparar slice donde guardaremos cada respuesta
     responses := make([][][]float64, len(rowBlocks))
@@ -273,7 +273,7 @@ func matrixHandler(w http.ResponseWriter, r *http.Request) {
             })
 
             // hacer POST con retry
-            resp, err := doRequestWithRetry(
+            resp, err := DoRequestWithRetry(
                 "POST",
                 "/matrix/part",
                 subPayload,
@@ -298,7 +298,7 @@ func matrixHandler(w http.ResponseWriter, r *http.Request) {
     wg.Wait()
 
     // 5) Stitch de las sub-matrices y respuesta final
-    result := stitchMatrix(responses)
+    result := StitchMatrix(responses)
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(result)
 }
@@ -314,13 +314,13 @@ func main() {
     //     workers = append(workers, &WorkerInfo{URL: u, Active: true})
     // }
 
-    go healthChecker()
+    go HealthChecker()
 
-    http.HandleFunc("/register", registerHandler)
-    http.HandleFunc("/unregister", unregisterHandler)
-    http.HandleFunc("/workers", statusHandler)
-    http.HandleFunc("/matrix", matrixHandler)    // endpoint completo
-    http.HandleFunc("/", proxyHandler)           // proxy para todo lo demás
+    http.HandleFunc("/register", RegisterHandler)
+    http.HandleFunc("/unregister", UnregisterHandler)
+    http.HandleFunc("/workers", StatusHandler)
+    http.HandleFunc("/matrix", MatrixHandler)    // endpoint completo
+    http.HandleFunc("/", ProxyHandler)           // proxy para todo lo demás
 
     log.Println("Dispatcher escuchando en :8000")
     log.Fatal(http.ListenAndServe(":8000", nil))
