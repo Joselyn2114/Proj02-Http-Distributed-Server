@@ -1,13 +1,18 @@
-FROM golang:1.24-alpine AS builder
+# dispatcher/Dockerfile
+FROM golang:1.22-alpine
+
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
+
+# Sólo copiamos go.mod y generamos go.sum dentro de la imagen
+COPY go.mod ./
+RUN go mod tidy
+
+# Copiamos el resto del proyecto
 COPY . .
+
+# Entramos a la carpeta dispatcher y compilamos
+WORKDIR /app/dispatcher
 RUN go build -o dispatcher main.go
 
-FROM alpine:3.19
-WORKDIR /app
-COPY --from=builder /app/dispatcher .
-ENV PORT=8080
-EXPOSE 8080
+EXPOSE 8000
 CMD ["./dispatcher"]

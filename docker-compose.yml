@@ -1,26 +1,33 @@
-version: '3.8'
+version: "3.8"
+
 services:
+
   dispatcher:
-    build: ./dispatcher
+    build:
+      context: .
+      dockerfile: dispatcher/Dockerfile
     container_name: dispatcher
-    ports: ["8080:8080"]
-    environment:
-      - PORT=8080
-      - WORKERS=http://worker-pi:8081,http://worker-matrix:8082
+    ports:
+      - "8000:8000"
     depends_on:
-      - worker-pi
-      - worker-matrix
+      - worker1
+      - worker2
+      - worker3
 
-  worker-pi:
-    build: ./workers/pi
-    container_name: worker-pi
-    ports: ["8081:8081"]
-    environment:
-      - PORT=8081
+  worker1:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: worker1
 
-  worker-matrix:
-    build: ./workers/matrix
-    container_name: worker-matrix
-    ports: ["8082:8082"]
-    environment:
-      - PORT=8082
+  worker2:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: worker2
+
+  worker3:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: worker3

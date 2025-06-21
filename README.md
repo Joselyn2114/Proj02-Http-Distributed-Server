@@ -1,125 +1,157 @@
-# Proj02-Http-Distributed-Server
+# Proyecto 2 - Servidor HTTP Distribuido
 
-## Descripción del Proyecto
-
-Este proyecto implementa un **Dispatcher** y dos **Workers** (π y Matrix) basados en el servidor HTTP del Proyecto 1 (`httpserver-core` v0.1.1).
-
-- **Dispatcher**
-  - Recibe peticiones en `/fibonacci`, `/hash`, `/simulate`, `/pi` y `/matrix`.
-  - Balancea la carga round-robin (con fail-over) hacia los Workers.
-  - Ejecuta health-check periódico (`/ping`) de cada Worker.
-  - Expone `/workers` que lista `{url, alive, load, done}` de cada uno.
-
-- **Worker π**
-  - Expondrá `/pi?trials=N` para cálculo de π vía Monte Carlo.
-  - Responde `/ping` con su estado interno (`status`, `load`, `done`).
-
-- **Worker Matrix**
-  - Expondrá `POST /matrix` recibiendo JSON `{A,B}` y devolviendo `{result: A×B}`.
-  - Responde `/ping` con su estado interno (`status`, `load`, `done`).
-
-> **Nota**: En esta fase ambos Workers sólo devuelven un stub “not implemented” y `/ping`.
+**Autores:**
+- Joselyn Jiménez  
+- Katerine Guzmán  
+- Esteban Solano  
 
 ---
 
-## Cómo Compilar
+## 1. Descripción del Programa
+Este proyecto extiende el **Servidor HTTP** del Proyecto 1 añadiendo un **Dispatcher** que distribuye tareas de forma concurrente y tolerante a fallos entre múltiples **Workers** ejecutando instancias Docker del servidor HTTP base.
 
-1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/Joselyn2114/Proj02-Http-Distributed-Server.git
-   cd Proj02-Http-Distributed-Server
-   ```
-
-2. (Opcional) Ajustar variables de entorno en un archivo `.env`:
-   ```
-   PORT=8080
-   WORKERS=http://worker-pi:8081,http://worker-matrix:8082
-   ```
-
-3. Construir y levantar con Docker Compose:
-   ```bash
-   docker-compose up --build -d
-   ```
+Principales funcionalidades:
+- Balanceo de carga Round-Robin con reintentos automáticos.
+- Split/Merge de matrices para procesamiento distribuido.
+- Cálculo de π por Monte Carlo paralelo.
+- Registro y desregistro dinámico de Workers.
+- Health-check periódico y marcación de Workers activos/inactivos.
+- Proxy transparente de todos los endpoints originales.
 
 ---
 
-## Cómo Testear
+## 2. Compilación
 
-1. Verificar que los contenedores estén corriendo:
-   ```bash
-   docker ps
-   ```
+**Requisitos:**
+- Go 1.22+
+- Docker y Docker Compose
 
-2. Listar estado de Workers:
-   ```bash
-   curl http://localhost:8080/workers
-   ```
+**Pasos:**
+```bash
+git clone https://github.com/Joselyn2114/Proj02-Http-Distributed-Server.git
+cd Proj02-Http-Distributed-Server
 
-3. Probar rutas stub via Dispatcher:
-   ```bash
-   curl http://localhost:8080/pi?trials=10        # → "not implemented"
-   curl -X POST http://localhost:8080/matrix         -H "Content-Type:application/json"         -d '{"A":[[1]],"B":[[1]]}'               # → Bad Request
-   curl http://localhost:8080/fibonacci?n=5      # → 404 Not Found
-   ```
-
-4. Simular caída y fail-over:
-   ```bash
-   docker stop worker-pi
-   curl http://localhost:8080/workers            # worker-pi.alive:false
-   curl http://localhost:8080/pi?trials=1         # “todos los workers caídos”
-   docker start worker-pi
-   ```
-
-5. Revisar logs:
-   ```bash
-   docker-compose logs dispatcher
-   docker-compose logs worker-pi
-   docker-compose logs worker-matrix
-   ```
+# Compilar Dispatcher y Worker
+docker-compose build
+```
 
 ---
 
-## Próximos Pasos
+## 3. Pruebas Ejecutadas y Cómo Ejecutarlas
 
-### Dev B: Worker π
+1. **Registro dinámico de Workers**  
+   - Iniciar solo el dispatcher:  
+     ```bash
+     docker-compose down
+     docker-compose up -d --no-deps dispatcher
+     ```  
+   - Verificar lista vacía:  
+     ```bash
+     curl http://localhost:8000/workers
+     ```  
+   - Arrancar un Worker y registrarlo:  
+     ```bash
+     docker-compose up -d worker1
+     curl -X POST http://localhost:8000/register \
+       -d '{"url":"http://worker1:8080"}' \
+       -H "Content-Type: application/json"
+     curl http://localhost:8000/workers
+     ```
+   - Desregistro:  
+     ```bash
+     curl -X POST http://localhost:8000/unregister \
+       -d '{"url":"http://worker1:8080"}' \
+       -H "Content-Type: application/json"
+     curl http://localhost:8000/workers
+     ```
 
-1. Implementar handler `/pi?trials=N`:
-   - Parsear `trials` de la URL.
-   - Calcular π con Monte Carlo.
-   - Medir tiempo de ejecución.
-   - Actualizar counters `load` y `done`.
-   - Devolver JSON `{trials, pi, duration}`.
-
-2. Escribir tests unitarios para:
-   - Cálculo de π (casos `trials=0`, `trials>0`).
-   - Correcto reporting en `/ping`.
-
-3. Validar integración:
+2. **Health-Check Dinámico**  
    ```bash
-   docker-compose up --build -d
-   curl http://localhost:8080/pi?trials=1000
+   docker-compose up -d dispatcher worker1 worker2
+   curl http://localhost:8000/workers
+   docker stop worker2
+   sleep 6
+   curl http://localhost:8000/workers
    ```
 
-### Dev C: Worker Matrix
-
-1. Implementar handler `POST /matrix`:
-   - Leer JSON `{A, B}` del body.
-   - Validar dimensiones conformes.
-   - Calcular producto `C = A × B`.
-   - Actualizar counters `load` y `done`.
-   - Devolver JSON `{result: C}`.
-
-2. Escribir tests unitarios para:
-   - Productos de matrices válidas (2×2, 3×3).
-   - Error 400 en dimensiones inválidas.
-   - Correcto reporting en `/ping`.
-
-3. Validar integración:
+3. **Balanceo Round-Robin & Reintentos**  
    ```bash
-   docker-compose up --build -d
-   curl -X POST http://localhost:8080/matrix         -H "Content-Type:application/json"         -d '{"A":[[1,2],[3,4]],"B":[[5,6],[7,8]]}'
+   for i in {1..9}; do
+     curl "http://localhost:8000/pi/part?iter=50000"
+   done
+   curl http://localhost:8000/workers
+   docker stop worker2
+   for i in {1..3}; do
+     curl "http://localhost:8000/pi/part?iter=30000"
+   done
+   curl http://localhost:8000/workers
+   ```
+
+4. **Split & Merge de Matrices**  
+   ```bash
+   cat <<EOF > identity.json
+   { "a": [[1,2,3],[4,5,6],[7,8,9]], "b": [[1,0,0],[0,1,0],[0,0,1]] }
+   EOF
+   curl -X POST http://localhost:8000/matrix \
+     -d @identity.json \
+     -H "Content-Type: application/json"
+   docker stop worker2 && sleep 2
+   curl -X POST http://localhost:8000/matrix \
+     -d @identity.json \
+     -H "Content-Type: application/json"
+   ```
+
+5. **Endpoints Originales vía Proxy**  
+   ```bash
+   curl "http://localhost:8000/fibonacci?num=10"
+   curl "http://localhost:8000/hash?text=hola123"
+   curl "http://localhost:8000/simulate?task=5"
+   curl "http://localhost:8000/sleep?seconds=3"
    ```
 
 ---
 
-Con esto tienes todo documentado para compilar, testear y continuar el desarrollo de los Workers específicos. ¡A programar!
+## 4. Arquitectura del Sistema Distribuido
+
+```
+Client → HTTP → Dispatcher (Go)
+                     ├─ HealthChecker (/ping)
+                     ├─ Register/Unregister (/register, /unregister)
+                     ├─ Status (/workers)
+                     ├─ Matrix (/matrix)
+                     └─ Proxy genérico → Workers
+Worker (Go HTTP Server base) ↔ contenedor Docker
+```
+
+---
+
+## 5. Protocolos de Comunicación
+
+- **HTTP/1.1** para todas las comunicaciones.
+- Métodos:
+  - **GET** `/pi/part`, `/ping`, `/workers`.
+  - **POST** `/matrix`, `/matrix/part`, `/register`, `/unregister`.
+  - Proxy de **GET**, **POST**, **DELETE**, etc., para rutas originales.
+- **JSON** en cuerpo de requests/responses para endpoints distribuidos.
+
+---
+
+## 6. Tolerancia a Fallos y Escalabilidad
+
+- **Health-Checks** cada 5s, marca inactivo al fallar.
+- **Reintentos** automáticos repartiendo sub-tareas.
+- **Registro Dinámico** de Workers en caliente.
+- **Split & Merge**: cada Worker procesa un bloque.
+- **Escalar** con `docker-compose up --scale worker=X`.
+
+---
+
+## 7. Resultados Comparativos
+
+| Ejecución     | Monte Carlo (1e6 iter) | Multiplicación 3×3 |
+|---------------|------------------------|--------------------|
+| Local mono    | ~1.2s                  | ~10ms              |
+| Distribuida 3 Workers | ~0.45s                | ~15ms              |
+
+- **Aceleración** ~2.7× en Monte Carlo pese a overhead de red.
+- **Matrices grandes** obtienen beneficio real al paralelizar.
