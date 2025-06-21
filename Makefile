@@ -1,9 +1,10 @@
-.PHONY: test integration all
+#
+
+.PHONY: test coverage
 
 test:
 	@go test ./... -timeout 30s
 
-integration:
-	@go test -timeout 30s -run Integration
-
-all: test integration
+coverage:
+	@go test -v ./... -timeout 30s -coverprofile=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html

@@ -12,7 +12,7 @@ COPY . .
 
 # Entramos al subdirectorio worker y compilamos
 WORKDIR /app/worker
-RUN go build -o worker main.go pi.go matrix.go
+RUN go build -o worker .
 
 EXPOSE 8080
 CMD ["./worker"]

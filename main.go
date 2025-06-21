@@ -1,11 +1,12 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/KateGF/Http-Server-Project-SO/advanced"
 	"github.com/KateGF/Http-Server-Project-SO/core"
 	"github.com/KateGF/Http-Server-Project-SO/handlers"
 	"github.com/KateGF/Http-Server-Project-SO/service"
-	"log/slog"
 )
 
 func main() {
@@ -40,8 +41,8 @@ func main() {
 	server.Get("/status", advanced.StatusHandler)
 	server.Get("/help", advanced.HelpHandler)
 
-	// Inicia el servidor en el puerto 8080.
-	err := server.Start(8080)
+	// Inicia el servidor en el puerto 8081.
+	err := server.Start(8081)
 
 	if err != nil {
 		slog.Error("Error starting or running server", "error", err)
