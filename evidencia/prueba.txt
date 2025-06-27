@@ -1,0 +1,82 @@
+# 0. Variables
+$dispatcher = "http://localhost:8000"
+$workers = 1..3 | ForEach-Object { "http://worker$($_):8080" }
+
+# 1. Reinciar todo y levantar Dispatcher + 3 Workers
+docker-compose down
+docker-compose up -d --build
+
+# Esperar a que arranque
+Start-Sleep -Seconds 5
+
+# 2. Registrar dinámicamente los 3 Workers
+foreach ($url in $workers) {
+    $body = @{ url = $url } | ConvertTo-Json
+    Invoke-RestMethod -Method POST -Uri "$dispatcher/register" `
+        -Body $body -ContentType "application/json"
+}
+
+# 3. Ver estado inicial de workers (todos activos, 0 tareas)
+"`n== Estado inicial =="
+Invoke-RestMethod -Uri "$dispatcher/workers" | ConvertTo-Json -Depth 3
+
+# 4. Health-Check: detener worker2 y esperar que pase health-checker
+"`n== Deteniendo worker2 =="
+docker stop worker2
+
+"`n== Esperando health-check (6s) =="
+Start-Sleep -Seconds 6
+
+"`n== Estado tras detener worker2 =="
+Invoke-RestMethod -Uri "$dispatcher/workers" | ConvertTo-Json -Depth 3
+
+# 5. Redistribución de /pi/part: 6 peticiones
+"`n== Enviando 6 peticiones a /pi/part =="
+1..6 | ForEach-Object {
+    $r = Invoke-RestMethod -Uri "$dispatcher/pi/part?iter=30000"
+    Write-Host "Req $_ → inside = $($r.inside)"
+}
+
+"`n== Estado tras 6 peticiones =="
+Invoke-RestMethod -Uri "$dispatcher/workers" | ConvertTo-Json -Depth 3
+
+# 6. Reactivar worker2 y esperar
+"`n== Reactivando worker2 =="
+docker start worker2
+Start-Sleep -Seconds 6
+
+"`n== Estado tras reactivar worker2 =="
+Invoke-RestMethod -Uri "$dispatcher/workers" | ConvertTo-Json -Depth 3
+
+# 7. Prueba Split/Merge con /matrix
+# Crear archivo JSON temporal
+$matrixJson = @{
+    a = @(
+        @(1,2,3),
+        @(4,5,6),
+        @(7,8,9)
+    )
+    b = @(
+        @(1,0,0),
+        @(0,1,0),
+        @(0,0,1)
+    )
+} | ConvertTo-Json
+$matrixJson | Out-File -FilePath matrix.json -Encoding utf8
+
+"`n== Enviando POST /matrix =="
+Invoke-RestMethod -Method POST -Uri "$dispatcher/matrix" `
+    -Body (Get-Content matrix.json -Raw) -ContentType "application/json" | ConvertTo-Json
+
+# 8. Simular fallo durante /matrix
+"`n== Deteniendo worker2 antes de /matrix =="
+docker stop worker2
+Start-Sleep -Seconds 2
+
+"`n== Enviando POST /matrix con worker2 caído =="
+Invoke-RestMethod -Method POST -Uri "$dispatcher/matrix" `
+    -Body (Get-Content matrix.json -Raw) -ContentType "application/json" | ConvertTo-Json
+
+# 9. Estado final de workers
+"`n== Estado final de workers =="
+Invoke-RestMethod -Uri "$dispatcher/workers" | ConvertTo-Json -Depth 3

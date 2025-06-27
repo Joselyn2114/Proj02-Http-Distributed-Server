@@ -1,0 +1,6 @@
+1 → inside = 23496
+2 → inside = 23640
+3 → inside = 23656
+4 → inside = 23585
+5 → inside = 23491
+6 → inside = 23664

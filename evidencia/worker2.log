@@ -1,0 +1,28 @@
+worker2  | 2025/06/27 03:17:55 INFO Worker arrancado en :8080
+worker2  | 2025/06/27 03:17:55 INFO Server started address=[::]:8080
+worker2  | 2025/06/27 03:18:05 INFO Request address=172.18.0.5:58244 method=GET path=/ping
+worker2  | 2025/06/27 03:18:05 INFO Response address=172.18.0.5:58244 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:18:10 INFO Request address=172.18.0.5:40196 method=GET path=/ping
+worker2  | 2025/06/27 03:18:10 INFO Response address=172.18.0.5:40196 status_code=200 status_text=OK
+worker2  | 
+worker2  | 2025/06/27 03:18:14 INFO Server stopped
+worker2  | 2025/06/27 03:18:46 INFO Worker arrancado en :8080
+worker2  | 2025/06/27 03:18:46 INFO Server started address=[::]:8080
+worker2  | 2025/06/27 03:18:51 INFO Request address=172.18.0.5:52486 method=GET path=/ping
+worker2  | 2025/06/27 03:18:51 INFO Response address=172.18.0.5:52486 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:18:56 INFO Request address=172.18.0.5:52494 method=GET path=/ping
+worker2  | 2025/06/27 03:18:56 INFO Response address=172.18.0.5:52494 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:01 INFO Request address=172.18.0.5:53310 method=GET path=/ping
+worker2  | 2025/06/27 03:19:01 INFO Response address=172.18.0.5:53310 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:06 INFO Request address=172.18.0.5:53320 method=GET path=/ping
+worker2  | 2025/06/27 03:19:06 INFO Response address=172.18.0.5:53320 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:11 INFO Request address=172.18.0.5:57868 method=GET path=/ping
+worker2  | 2025/06/27 03:19:11 INFO Response address=172.18.0.5:57868 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:16 INFO Request address=172.18.0.5:57876 method=GET path=/ping
+worker2  | 2025/06/27 03:19:16 INFO Response address=172.18.0.5:57876 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:17 INFO Request address=172.18.0.5:34278 method=POST path=/matrix/part
+worker2  | 2025/06/27 03:19:17 INFO Response address=172.18.0.5:34278 status_code=200 status_text=OK
+worker2  | 2025/06/27 03:19:21 INFO Request address=172.18.0.5:34282 method=GET path=/ping
+worker2  | 2025/06/27 03:19:21 INFO Response address=172.18.0.5:34282 status_code=200 status_text=OK
+worker2  | 
+worker2  | 2025/06/27 03:19:25 INFO Server stopped

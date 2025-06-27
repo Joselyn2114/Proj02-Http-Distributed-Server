@@ -1,0 +1,17 @@
+[
+  {
+    "active": true,
+    "tasks_done": 8,
+    "url": "http://worker1:8080"
+  },
+  {
+    "active": false,
+    "tasks_done": 1,
+    "url": "http://worker2:8080"
+  },
+  {
+    "active": true,
+    "tasks_done": 8,
+    "url": "http://worker3:8080"
+  }
+]

@@ -1,0 +1,4 @@
+NAME         IMAGE                                       COMMAND          SERVICE      CREATED         STATUS         PORTS
+dispatcher   proj02-http-distributed-server-dispatcher   "./dispatcher"   dispatcher   2 minutes ago   Up 2 minutes   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+worker1      proj02-http-distributed-server-worker1      "./worker"       worker1      2 minutes ago   Up 2 minutes   8080/tcp
+worker3      proj02-http-distributed-server-worker3      "./worker"       worker3      2 minutes ago   Up 2 minutes   8080/tcp
